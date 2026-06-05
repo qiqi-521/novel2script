@@ -76,6 +76,57 @@ class ParseNovelResponse(BaseModel):
     chapters: list[ChapterSegment]
 
 
+class ExtractStoryStructureRequest(BaseModel):
+    """Request model for character and event extraction."""
+
+    content: str = Field(..., min_length=50)
+
+    @field_validator("content")
+    @classmethod
+    def strip_content(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("must not be empty")
+        return cleaned
+
+
+class CharacterCandidate(BaseModel):
+    """Candidate character extracted from the novel text."""
+
+    name: str
+    mention_count: int
+    chapter_refs: list[int]
+
+
+class ChapterEvent(BaseModel):
+    """Event summary extracted from a chapter."""
+
+    chapter_index: int
+    chapter_title: str
+    summary: str
+    keywords: list[str]
+    characters: list[str]
+
+
+class SceneDraft(BaseModel):
+    """Scene draft derived from chapter-level events."""
+
+    id: str
+    title: str
+    chapter_refs: list[int]
+    summary: str
+    characters: list[str]
+
+
+class ExtractStoryStructureResponse(BaseModel):
+    """Structured intermediate layer used before script generation."""
+
+    chapter_count: int
+    characters: list[CharacterCandidate]
+    events: list[ChapterEvent]
+    scene_drafts: list[SceneDraft]
+
+
 class Meta(BaseModel):
     """Top-level metadata for a script document."""
 
