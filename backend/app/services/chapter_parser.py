@@ -12,7 +12,6 @@ CHAPTER_HEADER_PATTERN = re.compile(
     r"(?im)^(?P<title>\s*(?:第\s*[0-9零一二三四五六七八九十百千两]+\s*章|chapter\s+\d+)[^\n\r]*)\s*$"
 )
 
-MIN_CHAPTERS = 3
 MIN_CHARS_PER_CHAPTER = 20
 
 
@@ -27,10 +26,19 @@ def parse_novel_content(content: str) -> ParseNovelResponse:
         )
 
     matches = list(CHAPTER_HEADER_PATTERN.finditer(cleaned))
-    if len(matches) < MIN_CHAPTERS:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="输入文本至少需要识别出 3 个章节标题。",
+
+    if not matches:
+        return ParseNovelResponse(
+            chapter_count=1,
+            total_characters=len(cleaned),
+            chapters=[
+                ChapterSegment(
+                    index=1,
+                    title="未命名章节 1",
+                    content=cleaned,
+                    character_count=len(cleaned),
+                )
+            ],
         )
 
     chapters: list[ChapterSegment] = []

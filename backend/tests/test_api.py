@@ -76,18 +76,39 @@ def test_parse_novel_returns_chapter_segments() -> None:
     assert body["chapters"][1]["index"] == 2
 
 
-def test_parse_novel_rejects_less_than_three_chapters() -> None:
+def test_parse_novel_accepts_less_than_three_chapters() -> None:
     response = client.post(
         "/novels/parse",
         json={
             "content": (
                 "第1章 雨夜来信\n"
-                "林晚在雨里攥着那封匿名信，迟迟没有离开街口。\n"
+                "林晚在雨里攥着那封匿名信，迟迟没有离开街口，她知道今晚不会太平。\n"
                 "第2章 巷口脚步\n"
-                "旧城区的风很冷，脚步声从巷子深处逼近。"
+                "旧城区的风很冷，脚步声从巷子深处逼近，她本能地攥紧了手中的信。"
             )
         },
     )
 
-    assert response.status_code == 422
-    assert response.json()["detail"] == "输入文本至少需要识别出 3 个章节标题。"
+    body = response.json()
+
+    assert response.status_code == 200
+    assert body["chapter_count"] == 2
+    assert body["chapters"][0]["title"] == "第1章 雨夜来信"
+
+
+def test_parse_novel_falls_back_to_single_unnamed_chapter() -> None:
+    response = client.post(
+        "/novels/parse",
+        json={
+            "content": (
+                "林晚在雨里攥着那封匿名信，迟迟没有离开街口。"
+                "她知道今晚一定会有人出现，而她必须先一步看清真相。"
+            )
+        },
+    )
+
+    body = response.json()
+
+    assert response.status_code == 200
+    assert body["chapter_count"] == 1
+    assert body["chapters"][0]["title"] == "未命名章节 1"
