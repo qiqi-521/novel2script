@@ -137,3 +137,28 @@ def test_extract_story_structure_returns_intermediate_data() -> None:
     assert len(body["events"]) == 3
     assert len(body["scene_drafts"]) == 3
     assert any(character["name"] == "林晚" for character in body["characters"])
+
+
+def test_generate_script_modes_produce_different_beat_counts() -> None:
+    payload = {
+        "title": "迷雾之城",
+        "content": (
+            "第1章 雨夜来信\n"
+            "林晚站在旧城区的街口，手里攥着一封已经被雨水打湿的匿名信。她知道今晚一定会有人出现，而这封信会把她带进一场更危险的局里。\n"
+            "第2章 巷口脚步\n"
+            "巷子深处传来缓慢而清晰的脚步声，林晚下意识屏住呼吸。陈默从黑暗里走出，盯着她手中的信，问她为什么会来到这里。\n"
+            "第3章 正面交锋\n"
+            "林晚没有后退，她看向陈默，决定继续追踪这条线索。陈默沉默片刻，终于说出这封信并不是寄给她的。"
+        ),
+    }
+
+    conservative = client.post(
+        "/scripts/generate",
+        json={**payload, "adaptation_mode": "conservative"},
+    ).json()
+    dramatic = client.post(
+        "/scripts/generate",
+        json={**payload, "adaptation_mode": "dramatic"},
+    ).json()
+
+    assert len(conservative["scenes"][0]["beats"]) < len(dramatic["scenes"][0]["beats"])
