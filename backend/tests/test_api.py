@@ -48,3 +48,46 @@ def test_generate_yaml_returns_yaml_text() -> None:
     assert response.status_code == 200
     assert "version: '1.0'" in response.text
     assert "adaptation_mode: dramatic" in response.text
+
+
+def test_parse_novel_returns_chapter_segments() -> None:
+    response = client.post(
+        "/novels/parse",
+        json={
+            "content": (
+                "第1章 雨夜来信\n"
+                "林晚在雨里攥着那封匿名信，迟迟没有离开街口。\n"
+                "她知道今晚一定会有人出现。\n"
+                "第2章 巷口脚步\n"
+                "旧城区的风很冷，脚步声从巷子深处逼近。\n"
+                "她压低呼吸，慢慢后退半步。\n"
+                "第3章 黑影现身\n"
+                "一道身影从黑暗里走出，目光落在她手中的信上。\n"
+                "沉默只持续了两秒，就被一句质问打破。"
+            )
+        },
+    )
+
+    body = response.json()
+
+    assert response.status_code == 200
+    assert body["chapter_count"] == 3
+    assert body["chapters"][0]["title"] == "第1章 雨夜来信"
+    assert body["chapters"][1]["index"] == 2
+
+
+def test_parse_novel_rejects_less_than_three_chapters() -> None:
+    response = client.post(
+        "/novels/parse",
+        json={
+            "content": (
+                "第1章 雨夜来信\n"
+                "林晚在雨里攥着那封匿名信，迟迟没有离开街口。\n"
+                "第2章 巷口脚步\n"
+                "旧城区的风很冷，脚步声从巷子深处逼近。"
+            )
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "输入文本至少需要识别出 3 个章节标题。"
