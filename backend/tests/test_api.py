@@ -112,3 +112,27 @@ def test_parse_novel_falls_back_to_single_unnamed_chapter() -> None:
     assert response.status_code == 200
     assert body["chapter_count"] == 1
     assert body["chapters"][0]["title"] == "未命名章节 1"
+
+
+def test_extract_story_structure_returns_intermediate_data() -> None:
+    response = client.post(
+        "/novels/extract-structure",
+        json={
+            "content": (
+                "第1章 雨夜来信\n"
+                "林晚站在旧城区的街口，手里攥着匿名信。她知道今晚一定会有人出现。\n"
+                "第2章 巷口脚步\n"
+                "陈默从黑暗里走出，盯着林晚手中的信，开口问她为什么会来到这里。\n"
+                "第3章 正面交锋\n"
+                "林晚没有后退，她看向陈默，决定继续追踪这条线索。"
+            )
+        },
+    )
+
+    body = response.json()
+
+    assert response.status_code == 200
+    assert body["chapter_count"] == 3
+    assert len(body["events"]) == 3
+    assert len(body["scene_drafts"]) == 3
+    assert any(character["name"] == "林晚" for character in body["characters"])

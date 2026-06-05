@@ -5,6 +5,8 @@ from fastapi.responses import PlainTextResponse
 import yaml
 
 from backend.app.schemas import (
+    ExtractStoryStructureRequest,
+    ExtractStoryStructureResponse,
     GenerateScriptRequest,
     HealthResponse,
     ParseNovelRequest,
@@ -13,6 +15,7 @@ from backend.app.schemas import (
 )
 from backend.app.services.chapter_parser import parse_novel_content
 from backend.app.services.mock_generator import build_mock_script
+from backend.app.services.story_extractor import extract_story_structure
 
 router = APIRouter()
 
@@ -36,6 +39,19 @@ def parse_novel(payload: ParseNovelRequest) -> ParseNovelResponse:
     """Validate novel input and return structured chapter segments."""
 
     return parse_novel_content(payload.content)
+
+
+@router.post(
+    "/novels/extract-structure",
+    response_model=ExtractStoryStructureResponse,
+    tags=["novels"],
+)
+def extract_novel_structure(
+    payload: ExtractStoryStructureRequest,
+) -> ExtractStoryStructureResponse:
+    """Extract character candidates, chapter events, and scene drafts."""
+
+    return extract_story_structure(payload.content)
 
 
 @router.post("/scripts/generate/yaml", response_class=PlainTextResponse, tags=["scripts"])
