@@ -106,6 +106,7 @@ class ChapterEvent(BaseModel):
     summary: str
     keywords: list[str]
     characters: list[str]
+    location_hint: str | None = None
 
 
 class SceneDraft(BaseModel):
@@ -116,6 +117,7 @@ class SceneDraft(BaseModel):
     chapter_refs: list[int]
     summary: str
     characters: list[str]
+    location_hint: str | None = None
 
 
 class ExtractStoryStructureResponse(BaseModel):
@@ -125,6 +127,7 @@ class ExtractStoryStructureResponse(BaseModel):
     characters: list[CharacterCandidate]
     events: list[ChapterEvent]
     scene_drafts: list[SceneDraft]
+    extraction_strategy: str = "AI full-script generation"
 
 
 class Meta(BaseModel):
