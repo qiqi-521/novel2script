@@ -14,7 +14,7 @@ from backend.app.schemas import (
     ScriptDocument,
 )
 from backend.app.services.chapter_parser import parse_novel_content
-from backend.app.services.mock_generator import build_mock_script
+from backend.app.services.script_generator import build_script
 from backend.app.services.story_extractor import extract_story_structure
 
 router = APIRouter()
@@ -29,9 +29,9 @@ def health_check() -> HealthResponse:
 
 @router.post("/scripts/generate", response_model=ScriptDocument, tags=["scripts"])
 def generate_script(payload: GenerateScriptRequest) -> ScriptDocument:
-    """Return a schema-valid mock script document."""
+    """Return a schema-valid script document built from extracted structure."""
 
-    return build_mock_script(payload)
+    return build_script(payload)
 
 
 @router.post("/novels/parse", response_model=ParseNovelResponse, tags=["novels"])
@@ -56,9 +56,9 @@ def extract_novel_structure(
 
 @router.post("/scripts/generate/yaml", response_class=PlainTextResponse, tags=["scripts"])
 def generate_script_yaml(payload: GenerateScriptRequest) -> PlainTextResponse:
-    """Return the mock script serialized to YAML for quick inspection."""
+    """Return the generated script serialized to YAML for quick inspection."""
 
-    document = build_mock_script(payload)
+    document = build_script(payload)
     rendered = yaml.safe_dump(
         document.model_dump(mode="json"),
         allow_unicode=True,
