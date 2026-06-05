@@ -4,7 +4,14 @@ from fastapi import APIRouter
 from fastapi.responses import PlainTextResponse
 import yaml
 
-from backend.app.schemas import GenerateScriptRequest, HealthResponse, ScriptDocument
+from backend.app.schemas import (
+    GenerateScriptRequest,
+    HealthResponse,
+    ParseNovelRequest,
+    ParseNovelResponse,
+    ScriptDocument,
+)
+from backend.app.services.chapter_parser import parse_novel_content
 from backend.app.services.mock_generator import build_mock_script
 
 router = APIRouter()
@@ -22,6 +29,13 @@ def generate_script(payload: GenerateScriptRequest) -> ScriptDocument:
     """Return a schema-valid mock script document."""
 
     return build_mock_script(payload)
+
+
+@router.post("/novels/parse", response_model=ParseNovelResponse, tags=["novels"])
+def parse_novel(payload: ParseNovelRequest) -> ParseNovelResponse:
+    """Validate novel input and return structured chapter segments."""
+
+    return parse_novel_content(payload.content)
 
 
 @router.post("/scripts/generate/yaml", response_class=PlainTextResponse, tags=["scripts"])

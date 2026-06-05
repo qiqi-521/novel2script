@@ -45,6 +45,37 @@ class GenerateScriptRequest(BaseModel):
         return cleaned
 
 
+class ParseNovelRequest(BaseModel):
+    """Request model for novel chapter parsing."""
+
+    content: str = Field(..., min_length=50)
+
+    @field_validator("content")
+    @classmethod
+    def strip_content(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("must not be empty")
+        return cleaned
+
+
+class ChapterSegment(BaseModel):
+    """Structured chapter data extracted from the raw novel input."""
+
+    index: int
+    title: str
+    content: str
+    character_count: int
+
+
+class ParseNovelResponse(BaseModel):
+    """Parsed chapter output returned by the ingestion API."""
+
+    chapter_count: int
+    total_characters: int
+    chapters: list[ChapterSegment]
+
+
 class Meta(BaseModel):
     """Top-level metadata for a script document."""
 
