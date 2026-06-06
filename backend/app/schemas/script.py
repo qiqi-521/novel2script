@@ -1,6 +1,5 @@
 """Core schema models for structured script generation."""
 
-from datetime import datetime, timezone
 from enum import Enum
 
 from pydantic import BaseModel, Field, field_validator
@@ -130,73 +129,37 @@ class ExtractStoryStructureResponse(BaseModel):
     extraction_strategy: str = "AI full-script generation"
 
 
-class Meta(BaseModel):
-    """Top-level metadata for a script document."""
-
-    title: str
-    source_type: str = "novel"
-    source_chapters: dict[str, int]
-    language: str = "zh-CN"
-    adaptation_mode: AdaptationMode
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    summary: str
-
-
 class Character(BaseModel):
-    """Character definition in the script output."""
+    """Compact character definition in the script output."""
 
-    id: str
     name: str
-    aliases: list[str] = Field(default_factory=list)
-    role_type: str
-    description: str
-    goals: list[str] = Field(default_factory=list)
+    role: str
+    desc: str
 
 
 class Beat(BaseModel):
     """Minimal editable content unit inside a scene."""
 
-    id: str
     type: BeatType
-    content: str
-    source_type: str
+    text: str
     speaker: str | None = None
-    emotion: str | None = None
 
 
 class Scene(BaseModel):
-    """Scene block in the script output."""
+    """Compact scene block in the script output."""
 
-    id: str
-    chapter_refs: list[int]
     title: str
     time: str
     location: str
-    characters_present: list[str]
-    scene_purpose: str
+    characters: list[str]
     summary: str
     beats: list[Beat]
-    adaptation_notes: dict[str, str | list[str]] = Field(default_factory=dict)
-
-
-class ValidationIssue(BaseModel):
-    """Non-fatal validation message attached to the generated result."""
-
-    code: str
-    message: str
-
-
-class ValidationResult(BaseModel):
-    """Container for warnings produced during generation."""
-
-    warnings: list[ValidationIssue] = Field(default_factory=list)
 
 
 class ScriptDocument(BaseModel):
-    """Structured script document returned by the API."""
+    """Compact structured script document returned by the API."""
 
-    version: str = "1.0"
-    meta: Meta
+    title: str
+    mode: AdaptationMode
     characters: list[Character]
     scenes: list[Scene]
-    validation: ValidationResult = Field(default_factory=ValidationResult)

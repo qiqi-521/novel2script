@@ -13,7 +13,7 @@ from backend.app.services.llm_client import LLMClient
 
 
 def extract_story_structure(content: str) -> ExtractStoryStructureResponse:
-    """Generate full AI script JSON and expose its intermediate structure fields."""
+    """Generate compact AI script JSON and expose compatible structure fields."""
 
     prompt = build_script_generation_prompt(
         title="未命名作品",
@@ -36,17 +36,16 @@ def extract_story_structure(content: str) -> ExtractStoryStructureResponse:
         ) from exc
 
     return ExtractStoryStructureResponse(
-        chapter_count=document.meta.source_chapters.get("end", len(document.scenes)),
+        chapter_count=len(document.scenes),
         characters=[
             {
                 "name": character.name,
                 "mention_count": 0,
                 "chapter_refs": sorted(
                     {
-                        chapter_ref
-                        for scene in document.scenes
-                        if character.id in scene.characters_present
-                        for chapter_ref in scene.chapter_refs
+                        index
+                        for index, scene in enumerate(document.scenes, start=1)
+                        if character.name in scene.characters
                     }
                 ),
             }
@@ -54,33 +53,25 @@ def extract_story_structure(content: str) -> ExtractStoryStructureResponse:
         ],
         events=[
             {
-                "chapter_index": scene.chapter_refs[0] if scene.chapter_refs else index,
+                "chapter_index": index,
                 "chapter_title": scene.title,
                 "summary": scene.summary,
                 "keywords": [],
-                "characters": [
-                    character.name
-                    for character in document.characters
-                    if character.id in scene.characters_present
-                ],
+                "characters": scene.characters,
                 "location_hint": scene.location,
             }
             for index, scene in enumerate(document.scenes, start=1)
         ],
         scene_drafts=[
             {
-                "id": scene.id,
+                "id": f"scene_{index:03d}",
                 "title": scene.title,
-                "chapter_refs": scene.chapter_refs,
+                "chapter_refs": [index],
                 "summary": scene.summary,
-                "characters": [
-                    character.name
-                    for character in document.characters
-                    if character.id in scene.characters_present
-                ],
+                "characters": scene.characters,
                 "location_hint": scene.location,
             }
-            for scene in document.scenes
+            for index, scene in enumerate(document.scenes, start=1)
         ],
-        extraction_strategy="AI full-script generation",
+        extraction_strategy="AI compact-script generation",
     )

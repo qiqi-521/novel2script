@@ -56,7 +56,7 @@ def extract_novel_structure(
 
 @router.post("/scripts/generate/yaml", response_class=PlainTextResponse, tags=["scripts"])
 def generate_script_yaml(payload: GenerateScriptRequest) -> PlainTextResponse:
-    """Return the generated script serialized to YAML for quick inspection."""
+    """Return the generated compact script serialized to YAML."""
 
     document = build_script(payload)
     rendered = yaml.safe_dump(
