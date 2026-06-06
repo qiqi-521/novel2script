@@ -28,6 +28,7 @@ function App() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isContentFullscreen, setIsContentFullscreen] = useState(false);
   const [isYamlFullscreen, setIsYamlFullscreen] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
 
   const yamlLineCount = yamlResult ? yamlResult.split(/\r?\n/).length : 0;
   const yamlCharacterCount = yamlResult.length;
@@ -93,10 +94,45 @@ function App() {
   }
 
   return (
-    <main className="shell">
+    <main className={`shell shell-${theme}`}>
       <section className="intro-panel">
-        <p className="eyebrow">novel2script</p>
-        <h1>AI小说转剧本yml工具</h1>
+        <div className="top-nav">
+          <p className="eyebrow">novel2script</p>
+          <div className="nav-actions">
+            <button
+              className="theme-toggle"
+              type="button"
+              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+              aria-label={theme === "light" ? "切换到深色模式" : "切换到浅色模式"}
+              title={theme === "light" ? "切换到深色模式" : "切换到浅色模式"}
+            >
+              {theme === "light" ? (
+                <svg aria-hidden="true" viewBox="0 0 16 16">
+                  <path d="M9.6 14.7A6.72 6.72 0 0 1 8 1.42a.75.75 0 0 1 .72 1.14 5.22 5.22 0 0 0 4.72 7.72.75.75 0 0 1 1.14.72 6.72 6.72 0 0 1-4.98 3.7Z" />
+                </svg>
+              ) : (
+                <svg aria-hidden="true" viewBox="0 0 16 16">
+                  <path d="M8 11.25A3.25 3.25 0 1 0 8 4.75a3.25 3.25 0 0 0 0 6.5Zm0 1.5A4.75 4.75 0 1 1 8 3.25a4.75 4.75 0 0 1 0 9.5ZM8 .25a.75.75 0 0 1 .75.75v.75a.75.75 0 0 1-1.5 0V1A.75.75 0 0 1 8 .25Zm0 13.25a.75.75 0 0 1 .75.75V15a.75.75 0 0 1-1.5 0v-.75A.75.75 0 0 1 8 13.5ZM1 7.25h.75a.75.75 0 0 1 0 1.5H1a.75.75 0 0 1 0-1.5Zm13.25 0H15a.75.75 0 0 1 0 1.5h-.75a.75.75 0 0 1 0-1.5ZM3.05 2.99a.75.75 0 0 1 1.06 0l.53.53a.75.75 0 0 1-1.06 1.06l-.53-.53a.75.75 0 0 1 0-1.06Zm8.31 8.31a.75.75 0 0 1 1.06 0l.53.53a.75.75 0 1 1-1.06 1.06l-.53-.53a.75.75 0 0 1 0-1.06Zm1.59-8.31a.75.75 0 0 1 0 1.06l-.53.53a.75.75 0 0 1-1.06-1.06l.53-.53a.75.75 0 0 1 1.06 0ZM4.64 11.3a.75.75 0 0 1 0 1.06l-.53.53a.75.75 0 0 1-1.06-1.06l.53-.53a.75.75 0 0 1 1.06 0Z" />
+                </svg>
+              )}
+            </button>
+            <a
+              className="github-link"
+              href="https://github.com/qiqi-521/novel2script"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.62 7.62 0 0 1 8 3.86c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+              </svg>
+              <span>GitHub</span>
+            </a>
+          </div>
+        </div>
+        <div className="hero-copy">
+          <span className="hero-badge">AI Script Generator</span>
+          <h1>AI小说转剧本yml工具</h1>
+        </div>
       </section>
 
       <section className="workspace" aria-label="剧本生成工作区">
