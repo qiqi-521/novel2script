@@ -27,6 +27,7 @@ function App() {
   const [actionMessage, setActionMessage] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isContentFullscreen, setIsContentFullscreen] = useState(false);
+  const [isYamlFullscreen, setIsYamlFullscreen] = useState(false);
 
   const yamlLineCount = yamlResult ? yamlResult.split(/\r?\n/).length : 0;
   const yamlCharacterCount = yamlResult.length;
@@ -177,9 +178,23 @@ function App() {
 
           {actionMessage ? <p className="action-message">{actionMessage}</p> : null}
 
-          <pre className="yaml-preview">
-            {yamlResult || "生成后的剧本 YAML 会显示在这里。"}
-          </pre>
+          <div className="yaml-editor">
+            <textarea
+              className="yaml-preview"
+              value={yamlResult}
+              onChange={(event) => setYamlResult(event.target.value)}
+              placeholder="生成后的剧本 YAML 会显示在这里。"
+              disabled={!yamlResult}
+            />
+            <button
+              className="fullscreen-toggle yaml-fullscreen-toggle"
+              type="button"
+              onClick={() => setIsYamlFullscreen(true)}
+              disabled={!yamlResult}
+            >
+              全屏查看
+            </button>
+          </div>
         </article>
       </section>
 
@@ -199,6 +214,29 @@ function App() {
               value={content}
               onChange={(event) => setContent(event.target.value)}
               placeholder="粘贴三章以上小说文本"
+              autoFocus
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {isYamlFullscreen ? (
+        <div className="fullscreen-editor yaml-fullscreen-editor" role="dialog" aria-modal="true" aria-label="全屏编辑 YAML 结果">
+          <div className="fullscreen-editor-card">
+            <div className="fullscreen-editor-header">
+              <div>
+                <p className="eyebrow">output yaml</p>
+                <h2>YAML 结果</h2>
+              </div>
+              <button type="button" onClick={() => setIsYamlFullscreen(false)}>
+                退出全屏
+              </button>
+            </div>
+            <textarea
+              className="yaml-preview fullscreen-yaml-preview"
+              value={yamlResult}
+              onChange={(event) => setYamlResult(event.target.value)}
+              placeholder="生成后的剧本 YAML 会显示在这里。"
               autoFocus
             />
           </div>
