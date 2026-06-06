@@ -96,10 +96,7 @@ function App() {
     <main className="shell">
       <section className="intro-panel">
         <p className="eyebrow">novel2script</p>
-        <h1>把小说片段变成可编辑剧本 YAML</h1>
-        <p className="intro">
-          输入三章以上小说文本，选择改编强度，前端会调用后端 AI 生成接口并展示 YAML 初稿。
-        </p>
+        <h1>AI小说转剧本yml工具</h1>
       </section>
 
       <section className="workspace" aria-label="剧本生成工作区">
