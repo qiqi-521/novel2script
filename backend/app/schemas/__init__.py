@@ -9,7 +9,6 @@ from .script import (
     CharacterCandidate,
     GenerateScriptRequest,
     HealthResponse,
-    Meta,
     ExtractStoryStructureRequest,
     ExtractStoryStructureResponse,
     ChapterEvent,
@@ -18,8 +17,6 @@ from .script import (
     SceneDraft,
     Scene,
     ScriptDocument,
-    ValidationIssue,
-    ValidationResult,
 )
 
 __all__ = [
@@ -31,7 +28,6 @@ __all__ = [
     "CharacterCandidate",
     "GenerateScriptRequest",
     "HealthResponse",
-    "Meta",
     "ExtractStoryStructureRequest",
     "ExtractStoryStructureResponse",
     "ChapterEvent",
@@ -40,6 +36,4 @@ __all__ = [
     "SceneDraft",
     "Scene",
     "ScriptDocument",
-    "ValidationIssue",
-    "ValidationResult",
 ]

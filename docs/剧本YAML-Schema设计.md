@@ -2,645 +2,347 @@
 
 ## 1. 文档目的
 
-本文档用于定义 AI 小说转剧本工具的剧本 YAML Schema，明确输出数据的结构、字段含义、约束规则与设计原因。
+本文档定义 novel2script 的剧本 YAML 输出结构。
 
-该 Schema 的目标不是做一份“文学文本存档格式”，而是做一份同时满足以下三类需求的结构化剧本格式：
+当前项目的 YAML 结果后续会继续给 AI 阅读、改写、扩写或局部重生成，因此默认 Schema 不应追求字段完整，而应追求：
 
-1. 适合 AI 直接生成结构化 JSON，并由后端进行 Schema 校验。
-2. 适合人类作者阅读、修改与继续打磨。
-3. 适合后续程序继续消费，例如预览、局部重生成、导出和一致性检查。
+1. 字段少，减少 token 成本。
+2. 结构稳定，便于 AI 和程序解析。
+3. 语义清晰，便于用户阅读和编辑。
+4. 保留剧本改写所需的核心信息。
 
-当前实现路径为：AI 根据小说原文直接生成符合本 Schema 的 JSON；后端使用 Pydantic 校验 JSON；校验通过后再序列化为 YAML。后端不再通过硬编码规则判断角色、地点、事件或对白。
+本项目采用一套轻量 Schema：
 
-## 2. 设计目标
-
-本 Schema 设计遵循以下目标：
-
-### 2.1 可读性
-
-YAML 最终会直接展示给用户，因此字段命名应清晰，层级不能过深，结构应尽量贴近用户对“剧本”的理解方式。
-
-### 2.2 可解析性
-
-Schema 需要便于前后端程序解析和校验，避免大量不定形自由文本，尽量将结构拆成稳定字段。
-
-### 2.3 可编辑性
-
-用户后续需要修改单场、单句对白或单个动作，因此内容单元不能全部堆成大段文本，必须拆为可独立编辑的条目。
-
-### 2.4 可扩展性
-
-首版输出的是剧本初稿，但后续可能增加角色卡、分镜、节奏分析、局部重生成等能力，因此 Schema 需要预留扩展空间。
-
-### 2.5 可追踪性
-
-小说改编不是纯生成任务，很多内容来自原文提炼，部分内容来自模型补写，因此 Schema 应能记录必要的来源信息或改编说明。
-
-## 3. 总体结构
-
-顶层建议采用如下结构：
-
-```yaml
-version: "1.0"
-meta:
-  title: "作品名"
-  source_type: "novel"
-  source_chapters:
-    start: 1
-    end: 3
-  language: "zh-CN"
-  adaptation_mode: "balanced"
-  created_at: "2026-06-05T14:30:00+08:00"
-  summary: "三章内容改编后的剧本简介"
-characters:
-  - id: "char_linwan"
-    name: "林晚"
-    aliases: ["晚晚", "林小姐"]
-    role_type: "protagonist"
-    description: "女主，性格冷静，观察力强"
-    goals: ["查明真相"]
-scenes:
-  - id: "scene_001"
-    chapter_refs: [1]
-    title: "雨夜初遇"
-    time: "夜"
-    location: "旧城区巷口"
-    characters_present: ["char_linwan", "char_chenmo"]
-    scene_purpose: "建立主角相遇与初始冲突"
-    summary: "林晚在雨夜追踪线索，与陈默发生第一次正面接触。"
-    beats:
-      - type: "action"
-        content: "林晚撑伞快步穿过巷口，鞋跟在积水中溅起水花。"
-        source_type: "adapted"
-      - type: "dialogue"
-        speaker: "char_chenmo"
-        content: "你跟了我一路，到底想知道什么？"
-        source_type: "adapted"
-      - type: "dialogue"
-        speaker: "char_linwan"
-        content: "我只想确认，你今晚为什么会出现在这里。"
-        source_type: "adapted"
-    adaptation_notes:
-      compression: "压缩了原文中连续三段环境描写"
-      inner_monologue_strategy: "将主角心理紧张感转写为动作与停顿"
-validation:
-  warnings: []
+```text
+用户输入小说 -> AI 生成轻量 JSON -> Pydantic 校验 -> 程序转换为 YAML
 ```
 
-## 4. 顶层字段设计
+AI 生成的 JSON 和最终导出的 YAML 使用同一组字段，区别只在序列化格式不同。
 
-### 4.1 `version`
+## 2. 设计原则
 
-含义：
+### 2.1 AI 优先
 
-用于标记 Schema 版本。
+YAML 后续主要会被 AI 继续处理，因此字段必须减少冗余解释，避免模型在无关元数据上浪费上下文。
 
-类型：
+### 2.2 内容优先
 
-`string`
+默认 YAML 应突出剧本内容本身：角色、场景、动作、对白、旁白。
 
-设计原因：
+### 2.3 可编辑
 
-1. 便于未来升级字段结构时做兼容处理。
-2. 前后端和导出模块可根据版本选择不同解析策略。
+剧本内容仍然需要拆成可编辑的 `beats`，不能只输出整场大段文本。
 
-### 4.2 `meta`
+### 2.4 少 ID
 
-含义：
+默认 Schema 直接使用角色名，不使用 `char_001`、`scene_001`、`beat_001` 这类机器 ID。
 
-描述本次剧本输出的元信息。
+### 2.5 不输出调试字段
 
-类型：
+追踪、校验、告警、改编说明等字段不进入首版默认 Schema，避免输出越来越重。
 
-`object`
+## 3. 默认 YAML 结构
 
-推荐字段：
+默认输出结构如下：
 
-1. `title`：作品标题。
-2. `source_type`：来源类型，首版固定为 `novel`。
-3. `source_chapters`：原文章节范围。
-4. `language`：语言标记。
-5. `adaptation_mode`：改编强度或风格模式。
-6. `created_at`：生成时间。
-7. `summary`：改编结果摘要。
+```yaml
+title: 雨夜来信
+mode: balanced
 
-设计原因：
+characters:
+  - name: 林晚
+    role: protagonist
+    desc: 年轻记者，冷静敏锐，正在追查匿名信真相。
+  - name: 陈默
+    role: key_support
+    desc: 神秘男子，掌握匿名信背后的关键信息。
 
-1. 元信息独立存放，便于展示和检索。
-2. `adaptation_mode` 是创新功能的重要基础字段。
-3. `source_chapters` 直接体现该作品对应哪一段原文。
+scenes:
+  - title: 雨夜来信
+    time: 夜
+    location: 旧城区街口
+    characters: [林晚]
+    summary: 林晚收到匿名信，在雨夜等待即将出现的人。
+    beats:
+      - type: action
+        text: 林晚站在旧城区街口，手中攥着被雨水打湿的匿名信。
+      - type: narration
+        text: 她意识到，这封信会把她带进一场危险的局。
+
+  - title: 巷口脚步
+    time: 夜
+    location: 旧城区巷口
+    characters: [林晚]
+    summary: 林晚听见巷子深处传来脚步声，等待的人终于出现。
+    beats:
+      - type: action
+        text: 巷子深处传来缓慢而清晰的脚步声。
+      - type: action
+        text: 林晚屏住呼吸，盯着黑暗尽头。
+
+  - title: 陈默现身
+    time: 夜
+    location: 巷口
+    characters: [林晚, 陈默]
+    summary: 陈默现身，暗示自己知道匿名信的来历。
+    beats:
+      - type: dialogue
+        speaker: 陈默
+        text: 我知道你为什么会来。
+      - type: dialogue
+        speaker: 林晚
+        text: 那你也该知道，我不会空手回去。
+```
+
+## 4. 顶层字段
+
+### 4.1 `title`
+
+类型：`string`
+
+含义：作品或本次改编内容标题。
+
+是否必填：是。
+
+### 4.2 `mode`
+
+类型：`string`
+
+推荐值：
+
+1. `conservative`
+2. `balanced`
+3. `dramatic`
+
+含义：改编强度。
+
+是否必填：是。
 
 ### 4.3 `characters`
 
-含义：
+类型：`array<object>`
 
-剧本涉及的角色定义列表。
+含义：剧本涉及的主要角色。
 
-类型：
-
-`array<object>`
-
-设计原因：
-
-1. 将角色集中定义，避免在每个场景里重复写角色说明。
-2. 角色独立成表后，便于做一致性检查和角色关系扩展。
+是否必填：是。
 
 ### 4.4 `scenes`
 
-含义：
+类型：`array<object>`
 
-剧本的核心内容，按场次组织。
+含义：按剧本场景组织的正文内容。
 
-类型：
+是否必填：是。
 
-`array<object>`
+## 5. 角色字段
 
-设计原因：
-
-1. 剧本天然以“场景”为主组织单元，而不是按章节或段落。
-2. 以场为单位便于单场编辑、单场重生成和节奏分析。
-
-### 4.5 `validation`
-
-含义：
-
-记录生成后发现的校验结果、提示或告警。
-
-类型：
-
-`object`
-
-设计原因：
-
-1. 将结构校验与内容告警结果显式写入输出，便于调试和人工复核。
-2. 便于后续接入角色一致性检查、节奏诊断等功能。
-
-## 5. `meta` 字段设计
-
-建议结构如下：
-
-```yaml
-meta:
-  title: "迷雾之城"
-  source_type: "novel"
-  source_chapters:
-    start: 1
-    end: 3
-  language: "zh-CN"
-  adaptation_mode: "balanced"
-  created_at: "2026-06-05T14:30:00+08:00"
-  summary: "围绕匿名信展开的悬疑开篇，完成主角相遇和首轮冲突建立。"
-```
-
-字段说明：
-
-1. `title: string`
-2. `source_type: string`
-3. `source_chapters.start: integer`
-4. `source_chapters.end: integer`
-5. `language: string`
-6. `adaptation_mode: string`
-7. `created_at: datetime-string`
-8. `summary: string`
-
-设计原因：
-
-1. `source_chapters` 使用对象而不是 `"1-3"` 这种字符串，是为了便于程序处理。
-2. `adaptation_mode` 单独存储，便于比较不同模式下生成结果。
-3. `summary` 有助于用户快速判断本次输出是否符合预期。
-
-## 6. `characters` 字段设计
-
-建议结构如下：
+默认角色结构：
 
 ```yaml
 characters:
-  - id: "char_linwan"
-    name: "林晚"
-    aliases: ["晚晚", "林小姐"]
-    role_type: "protagonist"
-    description: "年轻记者，冷静敏锐，执着追查真相。"
-    goals:
-      - "查明匿名信背后的秘密"
-  - id: "char_chenmo"
-    name: "陈默"
-    aliases: []
-    role_type: "key_support"
-    description: "神秘男子，掌握关键信息但刻意隐瞒。"
-    goals:
-      - "隐藏自己的真实来意"
+  - name: 林晚
+    role: protagonist
+    desc: 年轻记者，冷静敏锐，正在追查匿名信真相。
 ```
 
 字段说明：
 
-1. `id: string`
-2. `name: string`
-3. `aliases: array<string>`
-4. `role_type: string`
-5. `description: string`
-6. `goals: array<string>`
+1. `name: string`：角色名，必填。
+2. `role: string`：角色功能，必填。
+3. `desc: string`：角色简短描述，建议填写。
 
-设计原因：
+推荐 `role` 值：
 
-1. 使用 `id` 而不是直接用角色名做引用，便于处理重名、别名和改名问题。
-2. `aliases` 用于角色归一化，是解决小说中多称谓问题的关键字段。
-3. `role_type` 便于后续做主演、配角、功能角色筛选。
-4. `goals` 不是必须字段，但它有助于剧本生成时维持角色行为一致性。
+1. `protagonist`：主角。
+2. `antagonist`：反派或主要阻力角色。
+3. `key_support`：关键配角。
+4. `support`：普通配角。
+5. `minor`：次要角色。
 
-推荐的 `role_type` 可选值：
+不默认输出的角色字段：
 
-1. `protagonist`
-2. `antagonist`
-3. `key_support`
-4. `support`
-5. `minor`
-6. `extra`
+1. `id`：给 AI 看时直接使用角色名即可。
+2. `aliases`：仅在角色消歧或别名归一化功能中需要。
+3. `goals`：容易让 AI 生成空泛内容，首版用 `desc` 承载即可。
+4. `description`：字段名较长，默认 YAML 使用更短的 `desc`。
 
-## 7. `scenes` 字段设计
+## 6. 场景字段
 
-这是 Schema 的核心部分。
-
-建议结构如下：
+默认场景结构：
 
 ```yaml
 scenes:
-  - id: "scene_001"
-    chapter_refs: [1]
-    title: "雨夜初遇"
-    time: "夜"
-    location: "旧城区巷口"
-    characters_present: ["char_linwan", "char_chenmo"]
-    scene_purpose: "建立主角相遇与试探关系"
-    summary: "林晚跟踪线索来到旧城区，与陈默在雨夜相遇并展开第一次交锋。"
+  - title: 雨夜来信
+    time: 夜
+    location: 旧城区街口
+    characters: [林晚]
+    summary: 林晚收到匿名信，在雨夜等待即将出现的人。
     beats:
-      - id: "beat_001"
-        type: "action"
-        content: "林晚撑着黑伞站在巷口，视线始终没有离开前方的人影。"
-        source_type: "adapted"
-      - id: "beat_002"
-        type: "dialogue"
-        speaker: "char_chenmo"
-        content: "你打算躲到什么时候？"
-        source_type: "adapted"
-      - id: "beat_003"
-        type: "action"
-        content: "林晚收起手机，从阴影里走出来，神色警惕。"
-        source_type: "adapted"
-      - id: "beat_004"
-        type: "dialogue"
-        speaker: "char_linwan"
-        content: "我只是比你先一步发现，有些事不该被埋掉。"
-        source_type: "generated"
-    adaptation_notes:
-      compression: "将原文两页追踪过程压缩为一个开场动作段"
-      dialogue_strategy: "保留试探语气，减少解释性台词"
-      inner_monologue_strategy: "用动作和神态代替大段心理描写"
+      - type: action
+        text: 林晚站在旧城区街口，手中攥着被雨水打湿的匿名信。
 ```
-
-### 7.1 场景基础字段
 
 字段说明：
 
-1. `id: string`
-2. `chapter_refs: array<integer>`
-3. `title: string`
-4. `time: string`
-5. `location: string`
-6. `characters_present: array<string>`
-7. `scene_purpose: string`
-8. `summary: string`
-9. `beats: array<object>`
-10. `adaptation_notes: object`
+1. `title: string`：场景标题，必填。
+2. `time: string`：场景时间，如 `夜`、`清晨`、`数日后`。
+3. `location: string`：场景地点。
+4. `characters: array<string>`：本场出场角色名。
+5. `summary: string`：场景摘要。
+6. `beats: array<object>`：场景内的动作、对白或旁白。
 
-设计原因：
+不默认输出的场景字段：
 
-1. `chapter_refs` 用于追溯该场景对应哪些原文章节。
-2. `title` 方便用户快速定位场景内容。
-3. `scene_purpose` 是非常重要的业务字段，它明确该场的戏剧功能，便于压缩和重写时不丢失主目标。
-4. `summary` 提供场景级概览，适合列表预览与节奏检查。
+1. `id`：对 AI 后续处理价值低。
+2. `chapter_refs`：只有做原文对照时才需要。
+3. `characters_present`：字段过长，默认 YAML 改为 `characters`。
+4. `scene_purpose`：和 `summary` 重叠，容易产生解释性废话。
+5. `adaptation_notes`：占用 token，默认不输出。
 
-### 7.2 为什么不用“整场纯文本”
+## 7. Beats 字段
 
-如果每场只保留一个大文本字段，例如 `script_text`，会带来以下问题：
+`beats` 是最小可编辑内容单元。
 
-1. 用户难以只修改一条对白或一个动作。
-2. 程序难以检查说话人、动作和旁白结构。
-3. 局部重生成会缺少精确定位点。
-4. 后续难以扩展为分镜、语音或角色分析模块。
-
-因此，每场必须拆成 `beats` 列表。
-
-## 8. `beats` 内容单元设计
-
-`beats` 是场景内部最核心的可编辑内容单元，表示一个连续的剧本动作点、对白点或说明点。
-
-建议字段如下：
-
-1. `id`
-2. `type`
-3. `speaker`
-4. `content`
-5. `source_type`
-6. `emotion`
-7. `notes`
-
-推荐结构如下：
+默认结构：
 
 ```yaml
 beats:
-  - id: "beat_001"
-    type: "action"
-    content: "林晚停下脚步，低头看了一眼手中的匿名信。"
-    source_type: "adapted"
-  - id: "beat_002"
-    type: "dialogue"
-    speaker: "char_linwan"
-    content: "如果这封信是真的，今晚一定有人会来。"
-    emotion: "压抑、警觉"
-    source_type: "generated"
-  - id: "beat_003"
-    type: "narration"
-    content: "远处传来脚步声，巷子里的气氛骤然紧绷。"
-    source_type: "adapted"
+  - type: action
+    text: 林晚停下脚步，低头看了一眼手中的匿名信。
+  - type: dialogue
+    speaker: 林晚
+    text: 如果这封信是真的，今晚一定有人会来。
+  - type: narration
+    text: 远处传来脚步声，巷子里的气氛骤然紧绷。
 ```
 
 字段说明：
 
-### 8.1 `id`
+1. `type: string`：内容类型，必填。
+2. `speaker: string`：对白说话人，仅 `type = dialogue` 时填写。
+3. `text: string`：动作、对白或旁白正文，必填。
 
-类型：
+推荐 `type` 值：
 
-`string`
+1. `action`：可视动作。
+2. `dialogue`：角色对白。
+3. `narration`：必要旁白或场景说明。
+4. `aside`：少量心理旁白或独白。
 
-设计原因：
+不默认输出的 beat 字段：
 
-为局部编辑、排序、评论和重生成提供稳定锚点。
+1. `id`：默认 YAML 不需要逐条机器 ID。
+2. `content`：字段名较长，默认 YAML 使用更短的 `text`。
+3. `source_type`：解释价值高，但 AI 后续处理时不是必要信息。
+4. `emotion`：容易让 AI 硬填，可在后续表演增强功能中再加入。
+5. `notes`：调试字段，不进入默认输出。
 
-### 8.2 `type`
+## 8. 生成链路
 
-类型：
+本项目推荐并实现以下链路：
 
-`string`
-
-推荐值：
-
-1. `action`
-2. `dialogue`
-3. `narration`
-4. `aside`
-
-设计原因：
-
-1. 明确区分动作、对白和说明，便于展示与导出。
-2. `aside` 可用于少量必要的心理旁白或导演提示。
-
-### 8.3 `speaker`
-
-类型：
-
-`string | null`
-
-适用条件：
-
-仅当 `type = dialogue` 时必填。
-
-设计原因：
-
-1. 说话人必须显式绑定角色。
-2. 可用于角色一致性校验和对白筛选。
-
-### 8.4 `content`
-
-类型：
-
-`string`
-
-设计原因：
-
-1. 作为最核心文本字段，必须保持单条内容语义完整。
-2. 不拆成更细 token 级结构，以控制复杂度。
-
-### 8.5 `source_type`
-
-类型：
-
-`string`
-
-推荐值：
-
-1. `quoted`
-2. `adapted`
-3. `generated`
-
-设计原因：
-
-这是本 Schema 的关键创新字段之一。
-
-1. `quoted` 表示基本来自原文直接引语。
-2. `adapted` 表示基于原文内容压缩、改写或转写。
-3. `generated` 表示模型为增强戏剧性或连贯性而补写。
-
-该字段的价值在于：
-
-1. 让“AI 改编”过程更可解释。
-2. 方便用户重点检查模型补写内容。
-3. 为评审展示业务深度提供依据。
-
-### 8.6 `emotion`
-
-类型：
-
-`string`
-
-是否必需：
-
-非必填。
-
-设计原因：
-
-保留少量情绪提示，有利于表演理解，也有利于后续语气重生成，但不应强制要求每条都填。
-
-### 8.7 `notes`
-
-类型：
-
-`string`
-
-是否必需：
-
-非必填。
-
-设计原因：
-
-用于补充个别条目的特殊说明，避免污染主字段结构。
-
-## 9. `adaptation_notes` 设计
-
-建议结构如下：
-
-```yaml
-adaptation_notes:
-  compression: "删减了大段环境铺陈，保留人物追踪与相遇结果"
-  dialogue_strategy: "将叙述中的试探关系改写成两轮短对白"
-  inner_monologue_strategy: "通过停顿、视线移动和动作替代心理独白"
-  risk_flags:
-    - "本场陈默的台词部分为补写，建议人工复核人物口吻"
+```text
+用户输入小说 -> AI 生成轻量 JSON -> Pydantic 校验 -> 程序转换为 YAML
 ```
 
-字段说明：
+该链路只有一套默认 Schema。AI 输出的 JSON 和最终 YAML 使用同一组核心字段。
 
-1. `compression`
-2. `dialogue_strategy`
-3. `inner_monologue_strategy`
-4. `risk_flags`
+这样做的原因：
 
-设计原因：
+1. 实现简单，后端不需要维护额外映射层。
+2. AI 一开始就按最终 YAML 结构生成内容，减少字段转换误差。
+3. 输出天然更适合后续继续交给 AI 处理。
 
-1. 这是对“小说怎么转剧本”的显式记录。
-2. 它不是面向最终观众，而是面向作者和开发者，帮助理解改编决策。
-3. 评审看到这部分，可以直接理解本项目不是黑盒生成。
+## 9. 默认不输出字段清单
 
-## 10. `validation` 设计
+以下字段不建议进入首版默认 Schema：
 
-建议结构如下：
+| 字段 | 处理方式 | 原因 |
+| --- | --- | --- |
+| `version` | 删除 | 给 AI 看价值低 |
+| `meta.source_type` | 删除 | 当前固定为小说，冗余 |
+| `meta.source_chapters` | 后续扩展 | 仅原文追溯需要 |
+| `meta.language` | 删除 | 默认中文，冗余 |
+| `meta.created_at` | 删除 | 给 AI 无意义 |
+| `validation` | 删除 | 属于校验结果，不是剧本正文 |
+| `characters.id` | 删除 | 默认直接用角色名 |
+| `characters.aliases` | 可选扩展 | 首版不做别名消歧时可省略 |
+| `characters.goals` | 可选扩展 | 容易生成空泛目标 |
+| `scenes.id` | 删除 | 给 AI 看价值低 |
+| `scenes.chapter_refs` | 后续扩展 | 仅原文对照需要 |
+| `scenes.scene_purpose` | 删除 | 与 `summary` 功能重叠 |
+| `scenes.adaptation_notes` | 调试可选 | 占用 token，默认不输出 |
+| `beats.id` | 删除 | 给 AI 看价值低 |
+| `beats.source_type` | 调试可选 | 解释字段，默认不输出 |
+| `beats.emotion` | 可选扩展 | 后续表演增强再加入 |
+| `beats.notes` | 删除 | 调试说明，默认不输出 |
 
-```yaml
-validation:
-  warnings:
-    - code: "SCENE_CHARACTER_MISMATCH"
-      message: "scene_003 中出现 speaker=char_moli，但该角色不在 characters_present 中"
-    - code: "EXCESSIVE_GENERATION"
-      message: "scene_005 中 generated 类型条目占比过高，建议人工复核"
-```
+## 10. 字段约束规则
 
-设计原因：
+### 10.1 顶层约束
 
-1. 输出不仅有内容，也应有自检结果。
-2. 这可以支持角色一致性检查和质量诊断能力。
-3. 即使首版告警规则较少，字段先设计出来，后续扩展成本更低。
+1. 必须包含 `title`、`mode`、`characters`、`scenes`。
+2. `characters` 至少包含 1 个角色。
+3. `scenes` 至少包含 1 个场景。
 
-## 11. 字段约束规则
+### 10.2 角色约束
 
-为保证 Schema 稳定性，建议定义以下约束：
+1. `characters[].name` 不应为空。
+2. `characters[].name` 建议唯一。
+3. `characters[].role` 应使用推荐值。
 
-### 11.1 顶层约束
+### 10.3 场景约束
 
-1. 必须包含 `version`、`meta`、`characters`、`scenes`。
-2. `scenes` 至少包含 1 个场景。
-
-### 11.2 角色约束
-
-1. `characters[].id` 必须唯一。
-2. `characters[].name` 不应为空。
-
-### 11.3 场景约束
-
-1. `scenes[].id` 必须唯一。
-2. `characters_present` 中的角色引用必须出现在 `characters[].id` 中。
+1. `scenes[].title` 不应为空。
+2. `scenes[].characters` 中的名字应能在 `characters[].name` 中找到。
 3. 每个场景必须包含至少 1 个 `beat`。
 
-### 11.4 内容单元约束
+### 10.4 Beat 约束
 
-1. `beats[].id` 在单场内必须唯一。
-2. `beats[].type = dialogue` 时，`speaker` 必填。
-3. `beats[].type != dialogue` 时，`speaker` 应为空或省略。
-4. `content` 不应为空字符串。
+1. `beats[].type` 必须是推荐值之一。
+2. `beats[].text` 不应为空。
+3. `type = dialogue` 时必须包含 `speaker`。
+4. `type != dialogue` 时不应输出 `speaker`。
 
-### 11.5 质量约束
+## 11. 为什么仍然使用 YAML
 
-1. `generated` 条目占比不应过高，否则需要给出告警。
-2. 单个场景不应只有说明文字而没有动作或对白，除非该场被明确标记为过渡场。
+YAML 仍然适合作为默认输出格式：
 
-## 12. 为什么选择 YAML
+1. 比 JSON 更适合人类阅读和复制。
+2. 层级清晰，适合表达角色、场景、beats。
+3. 对 AI 也足够友好，尤其在字段压缩后 token 成本更低。
+4. 方便用户下载后继续编辑。
 
-本项目要求输出 YAML，这一格式也确实适合当前场景。原因如下：
+注意：AI 仍然生成 JSON，后端校验后再转 YAML。这样能避免 AI 直接生成 YAML 时出现缩进错误或结构不稳定。
 
-1. 对人类更友好，便于阅读和手工修改。
-2. 能表达层级结构，适合角色、场景、内容单元这类嵌套关系。
-3. 与 JSON 相比噪音更少，更适合作为用户可见输出。
-4. 便于后续使用标准解析器做校验、导出与转换。
+## 12. 后续扩展字段
 
-同时，为降低 YAML 出错率，系统实现中采用：
-
-1. AI 先生成结构化 JSON，而不是直接生成 YAML。
-2. 后端使用 Pydantic 将 JSON 校验为 `ScriptDocument`。
-3. 校验通过后由程序序列化为 YAML。
-4. 校验失败时返回错误，避免输出半结构化或不可解析内容。
-
-## 13. 设计取舍说明
-
-### 13.1 为什么顶层不直接按章节组织
-
-因为小说的章节边界不等于剧本的场次边界。一个章节可能拆成多个场景，多个章节也可能合并成一条连续戏剧线。因此顶层必须以 `scenes` 为核心。
-
-### 13.2 为什么保留 `chapter_refs`
-
-虽然顶层不按章节组织，但改编追溯仍然重要。`chapter_refs` 能帮助用户理解某场内容来自哪些章节，也方便后续做原文对照。
-
-### 13.3 为什么要区分 `quoted`、`adapted`、`generated`
-
-这是为了把“提炼原文”和“模型补写”区分开。否则用户无法判断哪些内容更接近原著，哪些内容需要重点复核。
-
-### 13.4 为什么不把角色关系直接塞进场景里
-
-角色关系是跨场景稳定存在的全局信息，放在 `characters` 层或未来独立 `relations` 层更合理。场景只保留当前出场角色即可。
-
-### 13.5 为什么 `adaptation_notes` 不是必填
-
-首版系统的重点还是稳定生成剧本主体。如果强制每场都生成完整说明，可能拉高模型负担并降低稳定性。因此建议保留该字段，但允许按需输出。
-
-## 14. 首版推荐最小可用 Schema
-
-如果首版开发时间紧，建议至少保证以下字段：
-
-```yaml
-version: "1.0"
-meta:
-  title: "作品名"
-  source_chapters:
-    start: 1
-    end: 3
-  adaptation_mode: "balanced"
-characters:
-  - id: "char_001"
-    name: "主角"
-scenes:
-  - id: "scene_001"
-    chapter_refs: [1]
-    title: "场景标题"
-    location: "地点"
-    characters_present: ["char_001"]
-    beats:
-      - id: "beat_001"
-        type: "dialogue"
-        speaker: "char_001"
-        content: "对白内容"
-        source_type: "adapted"
-```
-
-原因：
-
-1. 这套最小结构已经能支撑“输入-生成-导出-预览”的基本闭环。
-2. 其他字段可以逐步补齐，不影响总体方向。
-
-## 15. 后续扩展方向
-
-后续可在不破坏主结构的情况下扩展以下内容：
+以下字段可以后续按功能单独增加，但不进入首版默认 YAML：
 
 1. `relations`：角色关系图谱。
-2. `style_profile`：改编风格配置。
-3. `scene_metrics`：场景长度、对白占比、冲突强度等指标。
-4. `regeneration_context`：局部重生成上下文。
-5. `storyline_tags`：主线、副线、情感线等标签。
+2. `style`：改编风格或语言风格。
+3. `scene_metrics`：对白占比、冲突强度、场景长度。
+4. `source_refs`：原文追溯信息。
+5. `regeneration_context`：局部重生成上下文。
+6. `review_notes`：用户或系统审阅意见。
 
-## 16. 结论
+这些扩展应按需开启，避免默认 YAML 越来越重。
 
-本 Schema 的核心设计思想是：以 `场景` 作为主组织单元，以 `beats` 作为最小可编辑内容单元，以 `source_type` 和 `adaptation_notes` 体现改编过程的可解释性。
+## 13. 结论
 
-这样设计的好处是：
+新的 YAML Schema 采用轻量设计：
 
-1. 能贴合小说改编为剧本的真实业务过程。
-2. 能支持 AI 生成、规则校验、用户编辑和后续扩展。
-3. 能在比赛评审中体现项目对“结构化输出”和“改编逻辑”的理解深度。
+```text
+title + mode + characters + scenes + beats
+```
 
-因此，这份 Schema 不只是输出格式定义，也是 AI 输出约束、后端校验和 YAML 序列化的共同契约。
+它不再把追踪字段、解释字段和告警字段输出给用户或 AI。
+
+这样做的好处是：
+
+1. 降低后续 AI 处理的 token 成本。
+2. 减少无关字段对 AI 的干扰。
+3. 保留剧本改写、预览和局部编辑所需的核心结构。
+4. 让 AI 生成 JSON 和最终 YAML 使用同一套简单结构。
+
+因此，代码实现应保持简单：AI 生成轻量 JSON，后端校验后直接转 YAML。
