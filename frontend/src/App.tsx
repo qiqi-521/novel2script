@@ -24,11 +24,16 @@ function App() {
   const [mode, setMode] = useState<AdaptationMode>("balanced");
   const [yamlResult, setYamlResult] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const yamlLineCount = yamlResult ? yamlResult.split(/\r?\n/).length : 0;
+  const yamlCharacterCount = yamlResult.length;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage("");
+    setActionMessage("");
     setYamlResult("");
 
     const cleanedTitle = title.trim();
@@ -53,6 +58,36 @@ function App() {
     } finally {
       setIsGenerating(false);
     }
+  }
+
+  async function handleCopyYaml() {
+    if (!yamlResult) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(yamlResult);
+      setActionMessage("YAML 已复制到剪贴板。");
+    } catch {
+      setActionMessage("复制失败，请手动选择结果内容复制。");
+    }
+  }
+
+  function handleDownloadYaml() {
+    if (!yamlResult) {
+      return;
+    }
+
+    const blob = new Blob([yamlResult], { type: "application/yaml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${buildSafeFileName(title)}.yaml`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setActionMessage("YAML 文件已开始下载。");
   }
 
   return (
@@ -114,6 +149,24 @@ function App() {
             </div>
             {yamlResult ? <span className="status-pill">已生成</span> : <span className="status-pill muted">等待输入</span>}
           </div>
+
+          <div className="result-toolbar" aria-label="YAML 结果操作">
+            <div className="result-stats">
+              <span>{yamlLineCount} 行</span>
+              <span>{yamlCharacterCount} 字符</span>
+            </div>
+            <div className="result-actions">
+              <button type="button" onClick={handleCopyYaml} disabled={!yamlResult}>
+                复制 YAML
+              </button>
+              <button type="button" onClick={handleDownloadYaml} disabled={!yamlResult}>
+                下载 YAML
+              </button>
+            </div>
+          </div>
+
+          {actionMessage ? <p className="action-message">{actionMessage}</p> : null}
+
           <pre className="yaml-preview">
             {yamlResult || "生成后的剧本 YAML 会显示在这里。"}
           </pre>
@@ -121,6 +174,11 @@ function App() {
       </section>
     </main>
   );
+}
+
+function buildSafeFileName(rawTitle: string): string {
+  const cleaned = rawTitle.trim().replace(/[\\/:*?"<>|\s]+/g, "-");
+  return cleaned || "script";
 }
 
 export default App;
