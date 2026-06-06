@@ -131,7 +131,10 @@ function App() {
         </div>
         <div className="hero-copy">
           <span className="hero-badge">AI Script Generator</span>
-          <h1>AI小说转剧本yml工具</h1>
+          <div className="hero-title-row">
+            <h1>AI小说转剧本YAML工具</h1>
+            <span className="hero-author">作者：刘佳琦</span>
+          </div>
         </div>
       </section>
 
