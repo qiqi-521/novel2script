@@ -26,6 +26,7 @@ function App() {
   const [errorMessage, setErrorMessage] = useState("");
   const [actionMessage, setActionMessage] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isContentFullscreen, setIsContentFullscreen] = useState(false);
 
   const yamlLineCount = yamlResult ? yamlResult.split(/\r?\n/).length : 0;
   const yamlCharacterCount = yamlResult.length;
@@ -127,11 +128,20 @@ function App() {
 
           <label className="field field-wide">
             <span>小说正文</span>
-            <textarea
-              value={content}
-              onChange={(event) => setContent(event.target.value)}
-              placeholder="粘贴三章以上小说文本"
-            />
+            <div className="novel-editor">
+              <textarea
+                value={content}
+                onChange={(event) => setContent(event.target.value)}
+                placeholder="粘贴三章以上小说文本"
+              />
+              <button
+                className="fullscreen-toggle"
+                type="button"
+                onClick={() => setIsContentFullscreen(true)}
+              >
+                全屏查看
+              </button>
+            </div>
           </label>
 
           {errorMessage ? <p className="error-message">{errorMessage}</p> : null}
@@ -172,6 +182,28 @@ function App() {
           </pre>
         </article>
       </section>
+
+      {isContentFullscreen ? (
+        <div className="fullscreen-editor" role="dialog" aria-modal="true" aria-label="全屏编辑小说正文">
+          <div className="fullscreen-editor-card">
+            <div className="fullscreen-editor-header">
+              <div>
+                <p className="eyebrow">novel content</p>
+                <h2>小说正文</h2>
+              </div>
+              <button type="button" onClick={() => setIsContentFullscreen(false)}>
+                退出全屏
+              </button>
+            </div>
+            <textarea
+              value={content}
+              onChange={(event) => setContent(event.target.value)}
+              placeholder="粘贴三章以上小说文本"
+              autoFocus
+            />
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
