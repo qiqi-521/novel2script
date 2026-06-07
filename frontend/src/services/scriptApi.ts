@@ -5,13 +5,19 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
 export async function generateScriptYaml(
   payload: GenerateScriptPayload,
 ): Promise<string> {
-  const response = await fetch(`${API_BASE_URL}/scripts/generate/yaml`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}/scripts/generate/yaml`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    throw new Error("无法连接后端服务，请确认服务已启动。");
+  }
 
   const responseText = await response.text();
 

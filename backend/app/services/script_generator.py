@@ -24,7 +24,7 @@ def build_script(payload: GenerateScriptRequest) -> ScriptDocument:
     if not raw_content:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="AI 生成不可用，请检查模型配置或稍后重试。",
+            detail="AI 生成暂时不可用，请稍后重试或检查模型配置。",
         )
 
     try:
@@ -32,7 +32,7 @@ def build_script(payload: GenerateScriptRequest) -> ScriptDocument:
     except (json.JSONDecodeError, ValidationError) as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"AI 返回内容不符合剧本 JSON Schema：{exc}",
+            detail="AI 返回内容格式异常，请重新生成一次。",
         ) from exc
 
     return document
