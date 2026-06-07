@@ -32,6 +32,7 @@ function App() {
 
   const yamlLineCount = yamlResult ? yamlResult.split(/\r?\n/).length : 0;
   const yamlCharacterCount = yamlResult.length;
+  const yamlStructureStats = countYamlStructure(yamlResult);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -201,6 +202,8 @@ function App() {
             <div className="result-stats">
               <span>{yamlLineCount} 行</span>
               <span>{yamlCharacterCount} 字符</span>
+              <span>{yamlStructureStats.characterCount} 角色</span>
+              <span>{yamlStructureStats.sceneCount} 场景</span>
             </div>
             <div className="result-actions">
               <button type="button" onClick={handleCopyYaml} disabled={!yamlResult}>
@@ -285,6 +288,39 @@ function App() {
 function buildSafeFileName(rawTitle: string): string {
   const cleaned = rawTitle.trim().replace(/[\\/:*?"<>|\s]+/g, "-");
   return cleaned || "script";
+}
+
+function countYamlStructure(yamlText: string): { characterCount: number; sceneCount: number } {
+  let currentSection = "";
+  let characterCount = 0;
+  let sceneCount = 0;
+
+  for (const line of yamlText.split(/\r?\n/)) {
+    if (/^characters:\s*$/.test(line)) {
+      currentSection = "characters";
+      continue;
+    }
+
+    if (/^scenes:\s*$/.test(line)) {
+      currentSection = "scenes";
+      continue;
+    }
+
+    if (/^[^\s].+:\s*$/.test(line)) {
+      currentSection = "";
+      continue;
+    }
+
+    if (currentSection === "characters" && /^\s*-\s+name:\s*.+/.test(line)) {
+      characterCount += 1;
+    }
+
+    if (currentSection === "scenes" && /^\s*-\s+title:\s*.+/.test(line)) {
+      sceneCount += 1;
+    }
+  }
+
+  return { characterCount, sceneCount };
 }
 
 export default App;
